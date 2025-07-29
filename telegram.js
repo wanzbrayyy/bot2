@@ -370,7 +370,7 @@ async function sendOtp(phoneNumber) {
 }
 
 async function claimTrialUserbot(chatId) {
-    bot.sendMessage(chatId, "Untuk mengklaim trial userbot, kirimkan nomor telepon Anda (format internasional, contoh: +628123456789):");
+    bot.sendMessage(chatId, "Untuk mengklaim trial userbot, kirimkan nomor telepon Anda dalam format internasional (contoh: +628123456789).");
 
     bot.once("message", async (msg) => {
         if (msg.chat.id !== chatId) return;
@@ -847,7 +847,7 @@ bot.onText(/\/upload/, async (msg) => {
                 parse_mode: "Markdown",
                 disable_web_page_preview: true,
                 reply_markup: createInlineKeyboard([
-                  {text: "Lihat Detail Produk", url: `${config.botBaseUrl}?product=${productId}`}
+                  {text: "Lihat Detail Produk", url: `https://t.me/${config.botUsername}?start=${productId}`}
                 ])
               });
               await bot.forwardMessage(user.chatId, chatId, sentMessage.message_id);
@@ -953,7 +953,8 @@ bot.onText(/\/broadcast( .*)?/, async (msg, match) => {
       return bot.sendMessage(chatId, "Tidak ada pengguna untuk target ini.");
     }
 
-    const sentMessage = await bot.sendMessage(chatId, broadcastMessage);
+    const formattedMessage = `||${broadcastMessage}||`;
+    const sentMessage = await bot.sendMessage(chatId, `\`\`\`${formattedMessage}\`\`\``, { parse_mode: "Markdown" });
 
     const promises = users.map(user => {
       return new Promise(async (resolve, reject) => {
@@ -1381,19 +1382,17 @@ bot.onText(/\/id (.+)/, async (msg, match) => {
 });
 
 async function handleConfess(chatId) {
-  bot.sendMessage(chatId, "Kirimkan pesan confess dengan format:\n\n`pesan|from|chat_id`\n\nUntuk mendapatkan chat_id, gunakan perintah /id <username>", { parse_mode: "Markdown" });
+  bot.sendMessage(chatId, "Kirimkan pesan confess Anda:", { parse_mode: "Markdown" });
   bot.once("message", async (msg) => {
-    const [pesan, from, targetChatId] = msg.text.split("|");
-    if (!pesan || !from || !targetChatId || !/^\d+$/.test(targetChatId.trim())) {
-      return bot.sendMessage(chatId, "Format salah. Pastikan Anda memberikan ID obrolan numerik yang valid.");
-    }
+    const pesan = msg.text;
     try {
-      const message = `*Confess Baru*\n\nPesan: ${pesan.trim()}\nFrom: ${from.trim()}`;
-      await bot.sendMessage(targetChatId.trim(), message, { parse_mode: "Markdown" });
-      bot.sendMessage(chatId, "Confess berhasil dikirim!");
+      const message = `||${pesan.trim()}||`;
+      const sentMessage = await bot.sendMessage(config.channelId, message, { parse_mode: "Markdown" });
+      const messageLink = `https://t.me/${config.channelId.replace('@','')}/${sentMessage.message_id}`;
+      bot.sendMessage(chatId, `Confess berhasil dikirim! Lihat di sini: ${messageLink}`);
     } catch (error) {
       console.error("Gagal mengirim confess:", error);
-      bot.sendMessage(chatId, "Gagal mengirim confess. Pastikan ID obrolan valid dan bot memiliki akses ke sana.");
+      bot.sendMessage(chatId, "Gagal mengirim confess. Pastikan bot adalah admin di channel dan dapat mengirim pesan.");
     }
   });
 }
