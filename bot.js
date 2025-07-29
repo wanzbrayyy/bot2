@@ -25,12 +25,18 @@ app.get('/live-chat/:chatId', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'live-chat.html'));
 });
 
+app.get('/live-chat/admin/:chatId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin-chat.html'));
+});
+
 io.on('connection', (socket) => {
     console.log('a user connected');
 
     socket.on('join', (chatId) => {
         socket.join(chatId);
         console.log(`User joined room: ${chatId}`);
+        const adminLink = `${config.botBaseUrl}/live-chat/admin/${chatId}`;
+        bot.sendMessage(config.adminId, `Pengguna baru memulai obrolan langsung. Balas di sini: ${adminLink}`);
     });
 
     socket.on('chat message', (data) => {
