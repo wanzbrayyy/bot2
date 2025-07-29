@@ -1,4 +1,7 @@
 const TelegramBot = require("node-telegram-bot-api");
+const fs = require("fs");
+const path = require("path");
+const mongoose = require('mongoose');
 const config = require("./config");
 const User = require('./models/user');
 const Product = require('./models/product');
@@ -375,6 +378,7 @@ async function claimTrialUserbot(chatId) {
         try {
             const { client, session } = await AUTHUSERCLIENT(
                 phoneNumber,
+                config.apiId,
                 config.apiHash,
                 () => {
                     return new Promise((resolve) => {
@@ -1295,8 +1299,8 @@ bot.on("polling_error", (error) => {
 console.log(`${config.botName} berjalan...`);
 
 // Implmen Function of AUTH
-async function AUTHUSERCLIENT(phoneNumber, userHash, getCode, getPassword) {
-  const client = await initializeTDLibClient(config.apiId, config.apiHash);
+async function AUTHUSERCLIENT(phoneNumber, apiId, apiHash, getCode, getPassword) {
+  const client = await initializeTDLibClient(apiId, apiHash);
 
   return new Promise((resolve, reject) => {
     client.on('update', async (update) => {
