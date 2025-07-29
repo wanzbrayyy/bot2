@@ -2,6 +2,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require('mongoose');
+const axios = require('axios');
 const config = require("./config");
 const User = require('./models/user');
 const Product = require('./models/product');
@@ -1383,8 +1384,8 @@ async function handleConfess(chatId) {
   bot.sendMessage(chatId, "Kirimkan pesan confess dengan format:\n\n`pesan|from|chat_id`\n\nUntuk mendapatkan chat_id, gunakan perintah /id <username>", { parse_mode: "Markdown" });
   bot.once("message", async (msg) => {
     const [pesan, from, targetChatId] = msg.text.split("|");
-    if (!pesan || !from || !targetChatId) {
-      return bot.sendMessage(chatId, "Format salah. Coba lagi.");
+    if (!pesan || !from || !targetChatId || !/^\d+$/.test(targetChatId.trim())) {
+      return bot.sendMessage(chatId, "Format salah. Pastikan Anda memberikan ID obrolan numerik yang valid.");
     }
     try {
       const message = `*Confess Baru*\n\nPesan: ${pesan.trim()}\nFrom: ${from.trim()}`;
