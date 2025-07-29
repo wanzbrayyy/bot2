@@ -14,5 +14,6 @@ module.exports = {
   botBaseUrl: "https://bott-production-2188.up.railway.app",
   apiId: 26316278,
   apiHash: "ef2368c81d5d34f0c4361520a01a051d",
-  paymentLink: "https://saweria.co/wanzofc"
+  paymentLink: "https://saweria.co/wanzofc",
+  channelId: "@menfess002" 
 };
