@@ -307,7 +307,10 @@ function handleTikTokV2(chatId) {
                 query: url
             });
             const data = response.data;
-            await bot.sendVideo(chatId, data.links[0].a, {
+            console.log("Respon dari lovetik.com:", JSON.stringify(data, null, 2));
+            const videoUrl = data.links[0].a;
+            console.log("URL Video:", videoUrl);
+            await bot.sendVideo(chatId, videoUrl, {
                 caption: data.desc,
             });
         } catch (error) {
