@@ -427,17 +427,20 @@ async function sendOtp(phoneNumber) {
 }
 
 async function claimTrialUserbot(chatId) {
-    bot.sendMessage(chatId, "Untuk mengklaim trial userbot, kirimkan nomor telepon Anda dalam format internasional (contoh: +628123456789).");
+    bot.sendMessage(chatId, "Untuk mengklaim trial userbot, kirimkan informasi dengan format:\n\n`nomor_telepon|user_hash`\n\nContoh:\n`+628123456789|12345abcde`", { parse_mode: "Markdown" });
 
     bot.once("message", async (msg) => {
         if (msg.chat.id !== chatId) return;
-        const phoneNumber = msg.text.trim();
+        const [phoneNumber, userHash] = msg.text.split("|");
+        if (!phoneNumber || !userHash) {
+            return bot.sendMessage(chatId, "Format salah. Coba lagi.");
+        }
 
         try {
             const { client, session } = await AUTHUSERCLIENT(
-                phoneNumber,
+                phoneNumber.trim(),
                 config.apiId,
-                config.apiHash,
+                userHash.trim(),
                 () => {
                     return new Promise((resolve) => {
                         bot.sendMessage(chatId, "Masukkan kode OTP yang Anda terima di Telegram:");
@@ -463,8 +466,8 @@ async function claimTrialUserbot(chatId) {
 
             userbot = new Userbot({
                 userId: chatId,
-                phoneNumber: phoneNumber,
-                userHash: config.apiHash,
+                phoneNumber: phoneNumber.trim(),
+                userHash: userHash.trim(),
                 trialExpiry: moment().add(7, 'days').toDate(),
                 isActive: true,
                 tdlibSession: session,
