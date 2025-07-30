@@ -11,8 +11,18 @@ const Transaction = require('./models/transaction');
 const Userbot = require('./models/userbot');
 const { TDL } = require('@telepilotco/tdl');
 const moment = require("moment");
+const { createInlineKeyboard, isAdmin, sendStartMessage, showProductDetail } = require('./utils');
 
 const bot = new TelegramBot(config.botToken, { polling: true });
+
+// Command Handler
+bot.commands = new Map();
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    bot.commands.set(command.name, command);
+}
 
 const wishlists = {};
 const carts = {};
@@ -40,22 +50,6 @@ function loadData() {
 
 loadData();
 
-function createInlineKeyboard(buttons) {
-  const keyboard = [];
-  let row = [];
-  for (const button of buttons) {
-    row.push({ text: button.text, callback_data: button.callback_data || undefined, url: button.url || undefined });
-    if (row.length === 2) {
-      keyboard.push(row);
-      row = [];
-    }
-  }
-  if (row.length > 0) {
-    keyboard.push(row);
-  }
-  return { inline_keyboard: keyboard };
-}
-
 function createNavigationKeyboard(currentIndex, totalItems, prefix) {
   const buttons = [];
   if (currentIndex > 0) {
@@ -65,10 +59,6 @@ function createNavigationKeyboard(currentIndex, totalItems, prefix) {
     buttons.push({ text: "Next", callback_data: `${prefix}_next` });
   }
   return createInlineKeyboard(buttons);
-}
-
-function isAdmin(chatId) {
-  return chatId.toString() === config.adminId;
 }
 
 async function isGroupAdmin(bot, chatId, userId) {
@@ -124,42 +114,55 @@ bot.on("new_chat_members", (msg) => {
   }
 });
 
-bot.on("message", (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
+bot.on("message", async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const text = msg.text;
 
-  if (mutedUsers[chatId] && mutedUsers[chatId][userId]) {
-    bot.deleteMessage(chatId, msg.message_id);
-  }
-
-  // Anti-spam
-  if (msg.text && msg.text.length > 500) {
-    bot.deleteMessage(chatId, msg.message_id);
-    bot.sendMessage(chatId, `Pesan dari ${msg.from.first_name} dihapus karena terlalu panjang.`);
-  }
-
-  // Filter kata-kata
-  const forbiddenWords = ["jelek", "bodoh", "gila"];
-  if (msg.text && forbiddenWords.some(word => msg.text.toLowerCase().includes(word))) {
-    bot.deleteMessage(chatId, msg.message_id);
-    bot.sendMessage(chatId, `Pesan dari ${msg.from.first_name} dihapus karena mengandung kata-kata yang tidak pantas.`);
-  }
-});
-
-bot.on("message", (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
-
-  if (newGroupMembers[chatId] && newGroupMembers[chatId][userId]) {
-    const recaptchaCode = newGroupMembers[chatId][userId];
-    if (parseInt(msg.text) === recaptchaCode) {
-      delete newGroupMembers[chatId][userId];
-      bot.sendMessage(chatId, `Selamat, Anda telah lolos verifikasi!`);
-    } else {
-      bot.kickChatMember(chatId, userId);
-      bot.sendMessage(chatId, `Kode reCAPTCHA salah. Anda dikeluarkan dari grup.`);
+    // Command handling
+    if (text) {
+        let commandFound = false;
+        for (const command of bot.commands.values()) {
+            const match = text.match(command.regex);
+            if (match) {
+                await command.execute(bot, msg, match);
+                commandFound = true;
+                break;
+            }
+        }
+        if (commandFound) return;
     }
-  }
+
+    // Other message handlers
+    if (mutedUsers[chatId] && mutedUsers[chatId][userId]) {
+        bot.deleteMessage(chatId, msg.message_id);
+        return;
+    }
+
+    if (text && text.length > 500) {
+        bot.deleteMessage(chatId, msg.message_id);
+        bot.sendMessage(chatId, `Pesan dari ${msg.from.first_name} dihapus karena terlalu panjang.`);
+        return;
+    }
+
+    const forbiddenWords = ["jelek", "bodoh", "gila"];
+    if (text && forbiddenWords.some(word => text.toLowerCase().includes(word))) {
+        bot.deleteMessage(chatId, msg.message_id);
+        bot.sendMessage(chatId, `Pesan dari ${msg.from.first_name} dihapus karena mengandung kata-kata yang tidak pantas.`);
+        return;
+    }
+
+    if (newGroupMembers[chatId] && newGroupMembers[chatId][userId]) {
+        const recaptchaCode = newGroupMembers[chatId][userId];
+        if (parseInt(text) === recaptchaCode) {
+            delete newGroupMembers[chatId][userId];
+            bot.sendMessage(chatId, `Selamat, Anda telah lolos verifikasi!`);
+        } else {
+            bot.kickChatMember(chatId, userId);
+            bot.sendMessage(chatId, `Kode reCAPTCHA salah. Anda dikeluarkan dari grup.`);
+        }
+        return;
+    }
 });
 
 bot.onText(/\/setwelcome (.+)/, async (msg, match) => {
@@ -209,29 +212,6 @@ async function initializeTDLibClient(apiId, apiHash) {
       TDLIB_AUTH_FUNCTIONS
 }
 */
-bot.onText(/\/start(?: (.+))?/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    const startPayload = match[1];
-
-    try {
-        let user = await User.findOne({ chatId });
-        if (!user) {
-            user = new User({ chatId: chatId, type: msg.chat.type, joinDate: moment().format() });
-            await user.save();
-        }
-
-        if (startPayload) {
-            const productId = startPayload;
-            showProductDetail(chatId, productId);
-        } else {
-            sendStartMessage(chatId, isAdmin(userId));
-        }
-    } catch (error) {
-        console.error("Gagal menangani /start:", error.message);
-        bot.sendMessage(chatId, "Terjadi kesalahan saat memproses perintah. Coba lagi nanti.");
-    }
-});
 
 bot.on("callback_query", async (query) => {
   const chatId = query.message.chat.id;
@@ -250,9 +230,9 @@ bot.on("callback_query", async (query) => {
       showProductsByCategory(chatId, categoryName, parseInt(page));
     } else if (data.startsWith("product_")) {
       const productId = data.split("_")[1];
-      showProductDetail(chatId, productId);
+      showProductDetail(bot, chatId, productId);
     } else if (data === "back_to_categories") showCategories(chatId);
-        else if (data === "back_to_start") sendStartMessage(chatId, isAdmin(userId), userbotSessions[chatId] != null);
+        else if (data === "back_to_start") sendStartMessage(bot, chatId, isAdmin(userId), userbotSessions[chatId] != null);
     else if (data === "deposit_midtrans") showMidtransPaymentOptions(chatId);
     else if (data === "deposit_qris") bot.sendPhoto(chatId, config.qrisImagePath, { caption: "Silakan transfer ke QRIS, kirim bukti dengan /send." });
     else if (data === "midtrans_gopay") handleMidtransDeposit(chatId, userId, "gopay");
@@ -350,33 +330,6 @@ bot.onText(/\/level/, async (msg) => {
     bot.sendMessage(chatId, `Level Anda saat ini: ${user.level}\nXP: ${user.xp}/${user.level * 100}`);
   }
 });
-
-async function sendStartMessage(chatId, isAdminUser = false, isUserbot = false) {
-    let message = `\`\`\`${config.botDescription}\`\`\`\n\nSilakan pilih opsi:`;
-    let buttons = [
-        { text: "🛍️ Produk", callback_data: "product" },
-        { text: "👤 Daftar", callback_data: "register" },
-        { text: "👤 Profil", callback_data: "profile" },
-        { text: "📜 All Menu", callback_data: "all_menu" },
-        { text: "💬 Live Chat", url: `${config.botBaseUrl}/live-chat/${chatId}` },
-        { text: "⬇️ Menu Unduhan", callback_data: "download_menu" },
-        { text: "💌 Menfess", callback_data: "menfess" },
-        { text: "💌 Confess", callback_data: "confess" },
-        { text: "📝 Saran", callback_data: "saran" },
-        { text: "🚨 Laporan", callback_data: "laporan" },
-    ];
-
-     if (!isUserbot) {
-            buttons.push({ text: "🤖 Claim Trial Userbot", callback_data: "claim_trial_userbot" });
-        }
-    if (isAdminUser) {
-        buttons.push({ text: "👑 Admin Menu", callback_data: "admin_menu" });
-    }
-
-       buttons.push( { text: "👑 Owner", url: `t.me/${config.ownerUsername}` });
-       buttons.push( { text: "👥 Grup", url: config.groupLink });
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown", reply_markup: createInlineKeyboard(buttons) });
-}
 
 async function showAllMenu(chatId, isAdminUser = false,  isUserbot = false) {
     let message = "*Semua Menu:*\n\n";
@@ -559,51 +512,6 @@ async function showProductsByCategory(chatId, categoryName, page) {
         console.error("Gagal menampilkan produk:", error);
         bot.sendMessage(chatId, "Terjadi kesalahan saat menampilkan produk. Coba lagi nanti.");
     }
-}
-
-function isValidImageUrl(url) {
-  return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://')) && /\.(jpg|jpeg|png|gif)$/i.test(url);
-}
-
-async function showProductDetail(chatId, productId) {
-  try {
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return bot.sendMessage(chatId, "ID produk tidak valid.");
-    }
-    const product = await Product.findById(productId);
-    if (!product) {
-      return bot.sendMessage(chatId, "Produk tidak ditemukan.");
-    }
-
-    if (isValidImageUrl(product.imageUrl)) {
-      await bot.sendPhoto(chatId, product.imageUrl);
-    } else {
-      console.error("URL gambar tidak valid:", product.imageUrl);
-      bot.sendMessage(chatId, "Gambar produk tidak tersedia.");
-    }
-
-    let message = `*${product.name}*\n\n`;
-    message += `Kategori: ${product.category}\n`;
-    message += `Harga: Rp ${product.price}\n`;
-    message += `Deskripsi: ${product.description}\n\n`;
-    message += `Link Produk: [Buka Produk](https://t.me/${config.botUsername}?start=${product._id})\n\n`;
-    message += `Beli?`;
-
-    const buttons = [
-      { text: "Beli", callback_data: `buy_${product._id}` },
-      { text: "Wishlist", callback_data: `wishlist_add_${product._id}` },
-      { text: "Cart", callback_data: `cart_add_${product._id}` },
-      { text: "Kembali ke Kategori", callback_data: "back_to_categories" },
-    ];
-    bot.sendMessage(chatId, message, {
-      parse_mode: "Markdown",
-      reply_markup: createInlineKeyboard(buttons),
-      disable_web_page_preview: true,
-    });
-  } catch (error) {
-    console.error("Gagal menampilkan detail produk:", error);
-    bot.sendMessage(chatId, "Gagal menampilkan detail produk.");
-  }
 }
 
 async function registerUser(chatId, userId) {

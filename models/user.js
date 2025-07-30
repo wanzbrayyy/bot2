@@ -7,7 +7,11 @@ const userSchema = new mongoose.Schema({
     daftar: { type: Boolean, default: false },
     type: { type: String, enum: ['private', 'group', 'supergroup', 'channel'], default: 'private' },
     joinDate: { type: Date, default: Date.now },
-     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    location: {
+        latitude: { type: Number },
+        longitude: { type: Number }
+    },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
     cart: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }], // referensi carts
 });
 
