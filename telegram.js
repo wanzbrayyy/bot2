@@ -189,9 +189,9 @@ async function initializeTDLibClient(apiId, apiHash) {
   if (tdlibClient) {
     return tdlibClient;
   }
-
+  console.log("Tipe apiId:", typeof apiId);
   const client = new TDL({
-    apiId: apiId,
+    apiId: 26316278, // Hardcoded for testing
     apiHash: apiHash,
     databaseDirectory: `_td_database_${apiId}`,
     filesDirectory: `_td_files_${apiId}`,
