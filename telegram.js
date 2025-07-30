@@ -303,11 +303,12 @@ function handleTikTokV2(chatId) {
     bot.once("message", async (msg) => {
         const url = msg.text;
         try {
-            const response = await axios.get(`https://api.siputzx.my.id/api/tiktok/v2?url=${encodeURIComponent(url)}`);
-            const data = response.data.data;
-            await bot.sendVideo(chatId, data.download.video[0], {
-                caption: data.metadata.title,
-                description: data.metadata.description,
+            const response = await axios.post('https://lovetik.com/api/ajax/search', {
+                query: url
+            });
+            const data = response.data;
+            await bot.sendVideo(chatId, data.links[0].a, {
+                caption: data.desc,
             });
         } catch (error) {
             console.error("Gagal mengunduh video TikTok:", error);
