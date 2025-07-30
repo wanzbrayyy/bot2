@@ -218,6 +218,22 @@ bot.on("callback_query", async (query) => {
   const userId = query.from.id;
   const data = query.data;
 
+  // Cek apakah data adalah nama command
+  if (bot.commands.has(data)) {
+      try {
+          const command = bot.commands.get(data);
+          // Kita butuh object `from` dari query, bukan dari message, untuk identitas user
+          const mockMsg = { ...query.message, from: query.from };
+          await command.execute(bot, mockMsg, [data]); // Pass mock message
+          bot.answerCallbackQuery(query.id);
+          return;
+      } catch (error) {
+          console.error(`Gagal eksekusi command dari callback: ${data}`, error);
+          bot.answerCallbackQuery(query.id, { text: 'Terjadi kesalahan.' });
+          return;
+      }
+  }
+
   try {
     if (data === "product") showCategories(chatId);
     else if (data === "register") registerUser(chatId, userId);

@@ -15,5 +15,14 @@ module.exports = {
   apiId: 25054644,
   apiHash: "d9c07f75d488f15cb655049af0fb686a",
   paymentLink: "https://saweria.co/wanzofc",
-  channelId: "@menfess002" 
+  channelId: "@menfess002",
+
+  // Konfigurasi untuk Dialogflow CX (Asisten Awan)
+  dialogflow: {
+    projectId: "YOUR_PROJECT_ID",
+    agentId: "YOUR_AGENT_ID",
+    location: "global", // atau region spesifik seperti "us-central1"
+    languageCode: "id", // kode bahasa
+    keyFilename: "dialogflow_credentials.json" // Nama file kredensial JSON dari Google Cloud
+  }
 };

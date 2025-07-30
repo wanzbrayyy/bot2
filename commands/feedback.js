@@ -34,12 +34,18 @@ module.exports = {
                 // Kirim notifikasi ke admin
                 const adminNotification = `
 📬 *Feedback Baru Diterima* 📬
+- - - - - - - - - - - - - - - - - -
+*👤 Dari Pengguna:*
+*Username:* ${username}
+*User ID:* \`${userId}\`
 
-*Dari:* ${username} (ID: \`${userId}\`)
-*Pesan:*
+*💬 Isi Feedback:*
+\`\`\`
 ${feedbackText}
+\`\`\`
+- - - - - - - - - - - - - - - - - -
                 `;
-                bot.sendMessage(config.adminId, adminNotification, { parse_mode: 'Markdown' });
+                bot.sendMessage(config.adminId, adminNotification.trim(), { parse_mode: 'Markdown' });
 
             } catch (error) {
                 console.error("Gagal menyimpan feedback:", error);

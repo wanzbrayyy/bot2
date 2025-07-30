@@ -23,29 +23,33 @@ function isAdmin(chatId) {
 }
 
 async function sendStartMessage(bot, chatId, isAdminUser = false, isUserbot = false) {
-    let message = `\`\`\`${config.botDescription}\`\`\`\n\nSilakan pilih opsi:`;
+    let message = `\`\`\`${config.botDescription}\`\`\`\n\nSelamat datang! Silakan pilih salah satu menu di bawah ini untuk memulai.`;
     let buttons = [
+        // Baris 1: Produk & Profil
         { text: "🛍️ Produk", callback_data: "product" },
-        { text: "👤 Daftar", callback_data: "register" },
-        { text: "👤 Profil", callback_data: "profile" },
-        { text: "📜 All Menu", callback_data: "all_menu" },
+        { text: "👤 Cek Profil", callback_data: "cekprofil" },
+
+        // Baris 2: Saldo & Riwayat
+        { text: "💰 Cek Saldo", callback_data: "saldoku" },
+        { text: "📜 Riwayat Transaksi", callback_data: "riwayat" },
+
+        // Baris 3: Fitur Lain
+        { text: "📍 Set Lokasi", callback_data: "lokasisaya" },
+        { text: "📡 Analisis WiFi", callback_data: "scanwifi" },
+
+        // Baris 4: Interaksi
+        { text: "📝 Kirim Feedback", callback_data: "feedback" },
         { text: "💬 Live Chat", url: `${config.botBaseUrl}/live-chat/${chatId}` },
-        { text: "⬇️ Menu Unduhan", callback_data: "download_menu" },
-        { text: "💌 Menfess", callback_data: "menfess" },
-        { text: "💌 Confess", callback_data: "confess" },
-        { text: "📝 Saran", callback_data: "saran" },
-        { text: "🚨 Laporan", callback_data: "laporan" },
+
+        // Baris 5: Menu Lain & Owner
+        { text: "📜 All Menu", callback_data: "all_menu" },
+        { text: "👑 Owner", url: `t.me/${config.ownerUsername}` },
     ];
 
-    if (!isUserbot) {
-        buttons.push({ text: "🤖 Claim Trial Userbot", callback_data: "claim_trial_userbot" });
-    }
     if (isAdminUser) {
         buttons.push({ text: "👑 Admin Menu", callback_data: "admin_menu" });
     }
 
-    buttons.push({ text: "👑 Owner", url: `t.me/${config.ownerUsername}` });
-    buttons.push({ text: "👥 Grup", url: config.groupLink });
     bot.sendMessage(chatId, message, { parse_mode: "Markdown", reply_markup: createInlineKeyboard(buttons) });
 }
 
