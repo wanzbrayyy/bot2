@@ -280,12 +280,58 @@ bot.on("callback_query", async (query) => {
     else if (data === "confess") handleConfess(chatId);
     else if (data === "saran") handleSaran(chatId);
     else if (data === "laporan") handleLaporan(chatId);
+    else if (data === "download_menu") showDownloadMenu(chatId);
+    else if (data === "tiktok_v2") handleTikTokV2(chatId);
+    else if (data === "twitter") handleTwitter(chatId);
     bot.answerCallbackQuery(query.id);
   } catch (error) {
     console.error("Gagal menangani callback query:", error.message);
     bot.sendMessage(chatId, "Terjadi kesalahan saat memproses permintaan Anda. Coba lagi nanti.");
   }
 });
+
+function showDownloadMenu(chatId) {
+    const buttons = [
+        { text: "🎵 TikTok v2", callback_data: "tiktok_v2" },
+        { text: "🐦 Twitter", callback_data: "twitter" },
+    ];
+    bot.sendMessage(chatId, "Pilih fitur unduhan:", { reply_markup: createInlineKeyboard(buttons) });
+}
+
+function handleTikTokV2(chatId) {
+    bot.sendMessage(chatId, "Silakan kirim tautan TikTok.");
+    bot.once("message", async (msg) => {
+        const url = msg.text;
+        try {
+            const response = await axios.get(`https://api.siputzx.my.id/api/tiktok/v2?url=${encodeURIComponent(url)}`);
+            const data = response.data.data;
+            await bot.sendVideo(chatId, data.download.video[0], {
+                caption: data.metadata.title,
+                description: data.metadata.description,
+            });
+        } catch (error) {
+            console.error("Gagal mengunduh video TikTok:", error);
+            bot.sendMessage(chatId, "Gagal mengunduh video TikTok. Pastikan tautan valid.");
+        }
+    });
+}
+
+function handleTwitter(chatId) {
+    bot.sendMessage(chatId, "Silakan kirim tautan Twitter.");
+    bot.once("message", async (msg) => {
+        const url = msg.text;
+        try {
+            const response = await axios.get(`https://api.siputzx.my.id/api/d/twitter?url=${encodeURIComponent(url)}`);
+            const data = response.data.data;
+            await bot.sendVideo(chatId, data.downloadLink, {
+                caption: "Video dari Twitter",
+            });
+        } catch (error) {
+            console.error("Gagal mengunduh video Twitter:", error);
+            bot.sendMessage(chatId, "Gagal mengunduh video Twitter. Pastikan tautan valid.");
+        }
+    });
+}
 
 bot.onText(/\/level/, async (msg) => {
   const chatId = msg.chat.id;
@@ -303,6 +349,7 @@ async function sendStartMessage(chatId, isAdminUser = false, isUserbot = false) 
         { text: "👤 Profil", callback_data: "profile" },
         { text: "📜 All Menu", callback_data: "all_menu" },
         { text: "💬 Live Chat", url: `${config.botBaseUrl}/live-chat/${chatId}` },
+        { text: "⬇️ Menu Unduhan", callback_data: "download_menu" },
         { text: "💌 Menfess", callback_data: "menfess" },
         { text: "💌 Confess", callback_data: "confess" },
         { text: "📝 Saran", callback_data: "saran" },
@@ -842,8 +889,14 @@ bot.onText(/\/upload/, async (msg) => {
               message += `Kategori: ${category}\n`;
               message += `Harga: Rp ${parsedPrice}\n`;
               message += `Deskripsi: ${description}\n\n`;
+              let notificationMessage = `*Produk Baru Telah Ditambahkan!*\n\n`;
+              notificationMessage += `*${fileName}*\n`;
+              notificationMessage += `Kategori: ${category}\n`;
+              notificationMessage += `Harga: Rp ${parsedPrice}\n`;
+              notificationMessage += `Deskripsi: ${description}\n\n`;
+
               const sentMessage = await bot.sendPhoto(user.chatId, imageUrl, {
-                caption: message,
+                caption: notificationMessage,
                 parse_mode: "Markdown",
                 disable_web_page_preview: true,
                 reply_markup: createInlineKeyboard([
