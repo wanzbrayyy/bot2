@@ -298,13 +298,19 @@ function showDownloadMenu(chatId) {
     bot.sendMessage(chatId, "Pilih fitur unduhan:", { reply_markup: createInlineKeyboard(buttons) });
 }
 
+const qs = require('qs');
+
 function handleTikTokV2(chatId) {
     bot.sendMessage(chatId, "Silakan kirim tautan TikTok.");
     bot.once("message", async (msg) => {
         const url = msg.text;
         try {
-            const response = await axios.post('https://lovetik.com/api/ajax/search', {
+            const response = await axios.post('https://lovetik.com/api/ajax/search', qs.stringify({
                 query: url
+            }), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                }
             });
             const data = response.data;
             console.log("Respon dari lovetik.com:", JSON.stringify(data, null, 2));
